@@ -1,0 +1,85 @@
+// OLD CODE - BEFORE MADHAVA'S REVIEW
+
+public class AcxiomLeadCallout 
+{
+    @future(Callout=true)
+    public static void makeHTTPCallout(list<id> LeadIdsLst)
+    {
+        String username;
+        String password;
+        list<Lead> lst = new list<Lead>();
+        lst = [SELECT id, Email, Email_OptOut__c, Survey_OptOut__c FROM lead WHERE id IN : LeadIdsLst];
+        
+        for(Integer i = 0; i < lst.size(); i++)
+            
+            if(lst[i].email != null) {
+                
+                // make http callout
+                
+                // Instantiate a new http object to initialize for the response 
+                Http h = new Http();
+                
+                // Instantiate a new HTTP request, specify the method (GET) as well as the endpoint
+                HttpRequest req = new HttpRequest();
+                req.setMethod('GET');
+                req.setEndpoint('https://mypreferences.homedepot.com/hsintegrationapi/v1/optout?email='+lst[i].email);
+                req.setHeader('Authorization', 'Basic aHNpbnRlZ3JhdGlvbjpiNjRkNjJjZWVhMzE2MzQ1N2U5NjdmYTRlN2Q1OWM3Nw==');
+                
+                try {
+                    List <Interface_Master__mdt> getmdtdata = new List <Interface_Master__mdt>();
+                    getmdtdata = giic_ERPIntegrationUtils.getIntegrationMaster('Acxiom_API_Callout');
+                    
+                    for (Interface_Master__mdt IntrVal: getmdtdata) {
+                        username = IntrVal.Client_Id__c;
+                        password = IntrVal.Client_Secret__c;  
+                    }
+                }
+                catch(Exception e){
+                    
+                }
+                
+                //String username = 'hsintegration';
+                //String password = 'b64d62ceea3163457e967fa4e7d59c77';
+                
+                Blob headerValue = Blob.valueOf(username + ':' + password);
+                String authorizationHeader = 'BASIC ' +
+                    EncodingUtil.base64Encode(headerValue);
+                req.setHeader('Authorization', authorizationHeader);
+                HTTPResponse res = new HTTPResponse();
+                if(!(test.isRunningTest())){
+                    // Send the request, and return a response
+                    res = h.send(req);
+                }   	
+                else
+                {
+                    MockHttpResponseGenerator temp = new MockHttpResponseGenerator();
+                    res = temp.respond(req);
+                }
+                system.debug('1. optout'+res); 
+                if(res!= null && res.getStatusCode()==200 && res.getBody() != null)
+                {
+                    AcxiomLeadCallout.JSONRespWrap obj = (AcxiomLeadCallout.JSONRespWrap)JSON.deserialize(res.getBody(), AcxiomLeadCallout.JSONRespWrap.class) ;
+                    system.debug('2. optout'+obj); 
+                    if(obj.optout == 'OPTOUT')
+                    {
+                        //   lst[i].Email_OptOut__c = true;
+                        lst[i].Survey_OptOut__c = true;
+                        update lst[i];
+                        system.debug('2.1 optout'+obj); 
+                    }
+                    
+                    else
+                    {
+                        lst[i].Survey_OptOut__c = false;
+                        update lst[i];
+                        system.debug('2.2 optout'+obj); 
+                    }  
+                }
+            }
+    }
+    
+    public class JSONRespWrap
+    {
+        public String optout{get;set;}
+    }
+}

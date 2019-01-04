@@ -1,0 +1,76 @@
+   // TriggerHandler Code - Examples from LeadInsertCase class
+
+   
+   
+    for(Lead recordNew : LeadsListToProcess) {
+            Lead recordOld = (Lead) getRecordOld(recordNew.Id, new Lead());
+        
+            if (CheckOnUpdate(recordOld, recordNew) == FALSE) {
+                continue;
+            }
+
+    for(Lead recordNew : LeadsListToProcess) {
+            Lead recordOld = (Lead) getRecordOld(recordNew.Id, new Lead());
+        
+            if (CheckOnInsert(recordOld, recordNew) == FALSE) {
+                continue;
+            }
+
+
+
+    // NEW CODE - AFTER MADHAVA'S REVIEW
+
+
+
+
+    public class AcxiomLeadMethods extends TriggerHandler 
+{
+   list<Id> LeadsListToProcess = new list<Id>();
+    public override void invoke() 
+    {
+    	if (isAfterUpdate() || isAfterInsert()) 
+    	{
+        	if (isAfterInsert())
+        	{
+            	for (lead recordNew: (lead[]) getRecords())
+            	{
+                    lead recordOld = (lead) getRecordNew(recordNew.Id, new lead());
+                    if(CheckOnInsert(recordNew) == FALSE) {
+                    	LeadsListToProcess.add(recordNew.id);
+            	}
+                }
+        	}
+        	else if (isAfterUpdate())
+        	{
+            	for (lead recordNew: (lead[]) getRecords())
+            	{
+                	lead recordOld = (lead) getRecordOld(recordNew.Id, new lead());
+                    if(CheckOnUpdate(recordNew,  recordOld) == FALSE) {
+                    	LeadsListToProcess.add(recordNew.id);
+            	}
+                }
+       		}
+       }
+	   else
+    		return;                     
+       if(!(LeadsListToProcess.isEmpty()))
+       {
+            AcxiomLeadCallout.makeHTTPCallout(LeadsListToProcess);
+       }
+  }
+  public boolean CheckOnUpdate(lead recordNew, lead recordOld)
+  {
+        if(recordNew.email != null && recordNew.email != recordOld.email)
+            return true;
+        else
+            return false;
+  }
+
+  public boolean CheckOnInsert(lead recordNew)
+  {
+        if(recordNew.email != null)
+            return true;
+        else
+            return false;
+  }
+}

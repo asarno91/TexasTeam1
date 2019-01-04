@@ -1,0 +1,256 @@
+// Line 282 - HVACLeadAPIRequest
+
+String uri = MetadataSettings.HVACLEADAPI_SETTINGS.Lead_Upload_Endpoint__c ;
+        //request.setEndpoint(URL.getSalesforceBaseUrl().toExternalForm() + path);
+        request.setEndpoint(uri);
+        request.setMethod(method);
+        if (bodyContent != null) {
+            request.setBody(bodyContent);
+            request.setHeader(SyncLogConstant.HEADER_CONTENT_TYPE, bodyContentType);  
+        }
+
+        String uri = MetadataSettings.HVACLEADAPI_SETTINGS.Lead_Upload_Endpoint__c ;
+        //request.setEndpoint(URL.getSalesforceBaseUrl().toExternalForm() + path);
+        request.setEndpoint(uri);
+        request.setMethod(method);
+        if (bodyContent != null) {
+            request.setBody(bodyContent);
+            request.setHeader(SyncLogConstant.HEADER_CONTENT_TYPE, bodyContentType);  
+        }
+
+
+Callout Class
+
+        CHANGED CODE
+
+        req.setEndpoint('https://mypreferences.homedepot.com/hsintegrationapi/v1/optout?email='+lst[i].email);
+
+        req.setEndpoint(uri);
+
+        _____________________________
+
+        req.setHeader('Authorization', 'Basic aHNpbnRlZ3JhdGlvbjpiNjRkNjJjZWVhMzE2MzQ1N2U5NjdmYTRlN2Q1OWM3Nw==');
+
+        req.setHeader(SyncLogConstant.HEADER_CONTENT_TYPE,SyncLogConstant.CONTENT_TYPE_JSON);
+
+        ______________________________
+
+        req.setMethod('GET');
+
+        req.setMethod(SyncLogConstant.METHOD_POST);
+
+        _______________________________
+
+MetadataSettings Class (ERPAD)
+
+            Added the below code in order for the @testVisible code to work (I used the PR MetadataSettings class to figure this out)
+
+                private static HVACLeadAPISettings__mdt existinHvacLeadApiSettings     {get;set;}
+
+
+
+
+            Added the below code after creating the HvacLeadApiSettings metadata type 
+
+            @testVisible
+    global static HVACLeadAPISettings__mdt HVACLEADAPI_SETTINGS {
+        get {
+            if(existinHvacLeadApiSettings!= null){
+                return existinHvacLeadApiSettings;
+            }
+            HVACLeadAPISettings__mdt setting = 
+                [SELECT Endpoint_Timeout__c, API_Key__c, Authorization__c, Client_ID__c, Remote_Site_Type__c,Client_Secret__c,Token_Endpoint__c,Lead_Upload_Endpoint__c from HVACLeadAPISettings__mdt Where DeveloperName = 'Universal'  LIMIT 1];
+            
+            //Perform sandbox test to prevent sandbox refreshes from copying production endpoints
+            if(setting != NULL && setting.Remote_Site_Type__c  == 'Production'){
+                Organization org = [SELECT Id, IsSandbox FROM Organization LIMIT 1];
+                if(org.IsSandbox == true){
+                    throw new MetadataSettingException('You are currently targeting production endpoints in a sandbox environment. YOU MUST EDIT ALL endpoints in Hover_Integration_Setting__mdt accordingly, then set remote site type to Sandbox.');
+                    return null;
+                }
+            }
+            
+            existinHvacLeadApiSettings= setting;
+            return setting;
+        }
+
+
+
+
+ATTEMPTED CODE FOR ACXIOMLEADCALLOUT Class 1/2/2019
+
+ @AuraEnabled
+    public static ResponseWrapper service(
+        String path, 
+        String method, 
+        String responseFormat, 
+        String bodyContent, 
+        String bodyContentType
+    ) {
+        
+        HttpRequest request = buildRequest(path, method, responseFormat, bodyContent, bodyContentType);
+        request.setTimeout(120000);
+        HttpResponse httpRes = sendRequest(request);
+         ResponseWrapper restRes =(!Test.isRunningTest())?buildResponse(httpRes):new ResponseWrapper ();
+        
+        
+        return restRes;
+    
+                 
+                public static HttpRequest buildRequest(String path, String method, String responseFormat, String bodyContent, String bodyContentType) {
+        		HttpRequest request = new HttpRequest();
+                    
+                    String uri = MetadataSettings.HVACLEADAPI_SETTINGS.Lead_Upload_Endpoint__c ;
+        //request.setEndpoint(URL.getSalesforceBaseUrl().toExternalForm() + path);
+        request.setEndpoint(uri);
+        request.setMethod(method);
+        if (bodyContent != null) {
+            request.setBody(bodyContent);
+            request.setHeader(SyncLogConstant.HEADER_CONTENT_TYPE, bodyContentType);  
+        }
+                }
+                public static String getAuthenticationToken() {
+                    String uri = MetadataSettings.HVACLEADAPI_SETTINGS.Token_Endpoint__c;
+                    String clientId = EncodingUtil.urlEncode(MetadataSettings.HVACLEADAPI_SETTINGS.Client_ID__c, 'UTF-8');
+        			String clientSecret = EncodingUtil.urlEncode(MetadataSettings.HVACLEADAPI_SETTINGS.Client_Secret__c, 'UTF-8');
+                    Map<String, String> bodymap = new Map<String, String>();
+                    
+                    Http h = new Http();
+                    HttpRequest req = new HttpRequest();
+        			HttpResponse res;
+        			req.setMethod(SyncLogConstant.METHOD_POST);
+        			req.setTimeout(SyncLogConstant.TIMEOUT_30);
+        			if (!Test.isRunningTest()) {
+            			req.setEndpoint(uri);
+            			req.setHeader(SyncLogConstant.HEADER_CONTENT_TYPE,SyncLogConstant.CONTENT_TYPE_JSON);
+            			req.setBody(Json.serialize(bodymap));
+            			res = h.send(req);
+        }
+    	
+                else
+                {
+                    MockHttpResponseGenerator temp = new MockHttpResponseGenerator();
+                    res = temp.respond(req);
+                }
+            }
+                
+    }
+
+
+
+
+    ATTEMPTED CODE 1/3/2019
+
+public class AcxiomLeadCallout 
+{
+    @future(Callout=true)
+    public static void makeHTTPCallout(list<id> LeadIdsLst)
+    {
+        String username;
+        String password;
+        String path; 
+        String method; 
+        String responseFormat;
+        String bodyContent;
+        String bodyContentType;
+        
+        list<Lead> lst = new list<Lead>();
+        lst = [SELECT id, Email, Email_OptOut__c, Survey_OptOut__c FROM lead WHERE id IN : LeadIdsLst];
+        
+        for(Integer i = 0; i < lst.size(); i++)
+            
+            if(lst[i].email != null) {
+                
+                // make http callout
+                
+                // Instantiate a new http object to initialize for the response 
+                Http h = new Http();
+
+    public static HttpRequest buildRequest(String path, String method, String responseFormat, String bodyContent, String bodyContentType) {
+        HttpRequest request = new HttpRequest();
+
+        String uri = MetadataSettings.HVACLEADAPI_SETTINGS.Lead_Upload_Endpoint__c ;
+        //request.setEndpoint(URL.getSalesforceBaseUrl().toExternalForm() + path);
+        request.setEndpoint(uri);
+        request.setMethod(method);
+        if (bodyContent != null) {
+            request.setBody(bodyContent);
+            request.setHeader(SyncLogConstant.HEADER_CONTENT_TYPE, bodyContentType);  
+        }
+
+        return request;
+
+    public static ResponseWrapper buildResponse(HttpResponse httpRes) {
+        //Response restRes = new Response();
+        
+        //return restRes;
+        ResponseWrapper resp = new ResponseWrapper();
+        resp = (ResponseWrapper)JSON.deserialize(httpRes.getBody(), ResponseWrapper.Class);
+        
+        return  resp;
+        
+    }
+
+    public static String getAuthenticationToken() {
+                    String uri = MetadataSettings.HVACLEADAPI_SETTINGS.Token_Endpoint__c;
+                    String clientId = EncodingUtil.urlEncode(MetadataSettings.HVACLEADAPI_SETTINGS.Client_ID__c, 'UTF-8');
+        			String clientSecret = EncodingUtil.urlEncode(MetadataSettings.HVACLEADAPI_SETTINGS.Client_Secret__c, 'UTF-8');
+                    Map<String, String> bodymap = new Map<String, String>();
+                    
+                    Http h = new Http();
+                    HttpRequest req = new HttpRequest();
+        			HttpResponse res;
+        			req.setMethod(SyncLogConstant.METHOD_POST);
+        			req.setTimeout(SyncLogConstant.TIMEOUT_30);
+        			if (!Test.isRunningTest()) {
+            			req.setEndpoint(uri);
+            			req.setHeader(SyncLogConstant.HEADER_CONTENT_TYPE,SyncLogConstant.CONTENT_TYPE_JSON);
+            			req.setBody(Json.serialize(bodymap));
+            			res = h.send(req);
+        }
+    	
+                else
+                {
+                    MockHttpResponseGenerator temp = new MockHttpResponseGenerator();
+                    res = temp.respond(req);
+                }
+
+                 if (res <> NULL){
+            Map<String,String> res = (Map<String,String>) JSON.deserialize(hRes.getBody(),Map<String,String>.class);
+            clientToken = res.get('token'); 
+
+            return clientToken;
+            
+        }
+        
+        else {
+            return NULL;
+        }  
+        
+if(obj.optout == 'OPTOUT')
+                    {
+                        //   lst[i].Email_OptOut__c = true;
+                        lst[i].Survey_OptOut__c = true;
+                        update lst[i];
+                        system.debug('2.1 optout'+obj); 
+                    }
+                    
+                    else
+                    {
+                        lst[i].Survey_OptOut__c = false;
+                        update lst[i];
+                        system.debug('2.2 optout'+obj); 
+                    }  
+                }
+            }
+    }
+    
+    public class JSONRespWrap
+    {
+        public String optout{get;set;}
+    }
+}
+
+    } 
+    
+                
