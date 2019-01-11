@@ -1,0 +1,773 @@
+REVISED CODE FOR CALLOUT CLASS - USED HVACLEADAPIREQUEST CLASS IN PR 1/4/2018
+
+/***************************************************************************************************************************************************
+ # Class Name  = "AcxiomLeadCallout"
+ # Author      =  Austin Sarno
+ # Description =  This class is used for making API call to Acxiom Web Service for Survey Optout customers.               
+ # Change Log :
+ ============================================================================================================
+ Date                     Changed By                        Change Description
+ ============================================================================================================
+ 08/21/2018               Austin Sarno                      Original Version                        
+**************************************************************************************************************************************************/
+
+public class AcxiomLeadCallout { 
+    
+    public static string clientToken='';
+    
+    public class JSONRespWrap
+    {
+        public String optout{get;set;}
+    }
+    
+    @future(Callout=true)
+    public static void makeHTTPCallout(list<id> LeadIdsLst)
+    {
+
+        list<Lead> lst = new list<Lead>();
+        lst = [SELECT id, Email, Email_OptOut__c, Survey_OptOut__c FROM lead WHERE id IN : LeadIdsLst];
+        
+        for(Integer i = 0; i < lst.size(); i++)
+            
+            if(lst[i].email != null) {
+    
+    string clientToken='';
+    string bodyContentType;
+    string method;
+    string bodyContent;
+                
+/**                else {
+                  MockHttpResponseGenerator temp = new MockHttpResponseGenerator();
+                      res = temp.respond(req);
+                  }
+                
+  				system.debug('1. optout'+res); 
+                if(res!= null && res.getStatusCode()==200 && res.getBody() != null){
+**/    
+            HttpResponse res;
+                
+        	AcxiomLeadCallout.JSONRespWrap obj = (AcxiomLeadCallout.JSONRespWrap) JSON.deserialize(res.getBody(),AcxiomLeadCallout.JSONRespWrap.class);
+            system.debug('2. optout'+obj); 
+            if(obj.optout == 'OPTOUT')
+                {
+                        //   lst[i].Email_OptOut__c = true;
+                        lst[i].Survey_OptOut__c = true;
+                        update lst[i];
+                        system.debug('2.1 optout'+obj); 
+                    }
+                    
+                    else
+                    {
+                        lst[i].Survey_OptOut__c = false;
+                        update lst[i];
+                        system.debug('2.2 optout'+obj); 
+                    }  
+//                }
+                
+                Http h = new Http();
+///             h.buildRequest(method, bodyContent, bodyContentType);
+    
+        HttpRequest request = new HttpRequest();        
+        String uri = MetadataSettings.HVACLEADAPI_SETTINGS.Lead_Upload_Endpoint__c ;
+    //    HttpResponse httpRes = sendRequest(request);
+    //    ResponseWrapper restRes =(!Test.isRunningTest())?buildResponse(httpRes):new ResponseWrapper ();
+        request.setEndpoint(uri);
+        request.setMethod(method);
+        if (bodyContent != null) {
+            request.setBody(bodyContent);
+            request.setHeader(SyncLogConstant.HEADER_CONTENT_TYPE, bodyContentType);  
+        }
+        
+        request.setHeader(SyncLogConstant.HEADER_CONTENT_TYPE,SyncLogConstant.CONTENT_TYPE_JSON);
+        
+        res = h.send(request);
+                
+            }
+    }
+    
+/**    public static HttpRequest buildRequest(String method, String bodyContent, String bodyContentType) {
+          HttpRequest request = new HttpRequest();
+        
+          String uri = MetadataSettings.HVACLEADAPI_SETTINGS.Lead_Upload_Endpoint__c ;
+    //    HttpResponse httpRes = sendRequest(request);
+    //    ResponseWrapper restRes =(!Test.isRunningTest())?buildResponse(httpRes):new ResponseWrapper ();
+          request.setEndpoint(uri);
+          request.setMethod(method);
+          if (bodyContent != null) {
+              request.setBody(bodyContent);
+              request.setHeader(SyncLogConstant.HEADER_CONTENT_TYPE, bodyContentType);  
+          }
+        
+          request.setHeader(SyncLogConstant.HEADER_CONTENT_TYPE,SyncLogConstant.CONTENT_TYPE_JSON);
+        
+          return request;
+///    }
+    
+        public static HttpResponse sendRequest(HttpRequest request) {
+        HttpResponse res = new HttpResponse;
+        
+          return new Http().send(request);
+          if(!(test.isRunningTest())){
+///       res = h.send(request);
+      }
+              }  
+           
+            public static HttpResponse sendRequest(HttpRequest request) {        
+          	return new Http().send(request);
+      }  
+    
+        public static ResponseWrapper buildResponse(HttpResponse httpRes) {
+        //Response restRes = new Response();
+        
+        
+        // restRes.Id = httpRes.getBody();
+        
+        //return restRes;
+          ResponseWrapper resp = new ResponseWrapper();
+          resp = (ResponseWrapper)JSON.deserialize(httpRes.getBody(), ResponseWrapper.Class);
+        
+          return  resp;
+        
+    }
+**/
+    
+       public static String getAuthenticationToken() { 
+                
+        String uri = MetadataSettings.HVACLEADAPI_SETTINGS.Token_Endpoint__c;
+        String clientId = EncodingUtil.urlEncode(MetadataSettings.HVACLEADAPI_SETTINGS.Client_ID__c, 'UTF-8');
+        String clientSecret = EncodingUtil.urlEncode(MetadataSettings.HVACLEADAPI_SETTINGS.Client_Secret__c, 'UTF-8');
+        Map<String, String> bodymap = new Map<String, String>();
+        
+        Http h = new Http();
+        HttpRequest hRqst = new HttpRequest();
+        HttpResponse hRes;
+        hRqst.setMethod(SyncLogConstant.METHOD_POST);
+        hRqst.setTimeout(SyncLogConstant.TIMEOUT_30);
+        if (!Test.isRunningTest()) {
+            hRqst.setEndpoint(uri);
+            hRqst.setHeader(SyncLogConstant.HEADER_CONTENT_TYPE,SyncLogConstant.CONTENT_TYPE_JSON);
+            hRqst.setBody(Json.serialize(bodymap));
+            hRes = h.send(hRqst);
+            
+        }
+        
+        if (hRes <> NULL){
+
+			Map<String,String> res = (Map<String,String>) JSON.deserialize(hRes.getBody(),Map<String,String>.class);
+            clientToken = res.get('token'); 
+
+            return clientToken;
+            
+        }
+        else {
+            return NULL;
+        }  
+         
+            }
+}
+
+
+
+
+_______________________________________________________________________________________________________________________________________________________
+
+
+REVISED CODE FOR CALLOUT CLASS - USED HVACLEADAPIREQUEST CLASS IN PR 1/7/2018
+
+/***************************************************************************************************************************************************
+ # Class Name  = "AcxiomLeadCallout"
+ # Author      =  Austin Sarno
+ # Description =  This class is used for making API call to Acxiom Web Service for Survey Optout customers.               
+ # Change Log :
+ ============================================================================================================
+ Date                     Changed By                        Change Description
+ ============================================================================================================
+ 08/21/2018               Austin Sarno                      Original Version                        
+**************************************************************************************************************************************************/
+
+public class AcxiomLeadCallout { 
+    
+    for(Integer i = 0; i < lst.size(); i++)
+            
+            if(lst[i].email != null) {
+    
+    public static string clientToken='';
+    
+    public static HttpRequest buildRequest(String path, String method, String responseFormat, String bodyContent, String bodyContentType) {
+        HttpRequest request = new HttpRequest();
+//      bodyContent=bodyContent.replace('Apptdate',LeadConstant.SP_APT_DATE);
+//      bodyContent=bodyContent.replace('Appttime',LeadConstant.SP_APT_TIME);
+//      system.debug('body content server'+bodyContent);
+        String uri = MetadataSettings.HVACLEADAPI_SETTINGS.Lead_Upload_Endpoint__c ;
+        //request.setEndpoint(URL.getSalesforceBaseUrl().toExternalForm() + path);
+        request.setEndpoint(uri);
+        request.setMethod(method);
+        if (bodyContent != null) {
+            request.setBody(bodyContent);
+            request.setHeader(SyncLogConstant.HEADER_CONTENT_TYPE, bodyContentType);  
+        }
+        
+        if (!Test.isRunningTest()) {
+            String accessToken = getAuthenticationToken();
+            request.setHeader(SyncLogConstant.HEADER_AUTHORIZATION, 'BASIC ' + accessToken); 
+            //headers.put(SyncLogConstant.HEADER_APPTOKEN,accessToken);
+            
+        }
+        
+        //request.setClientCertificateName('homeservice_dev_gcp');
+        request.setHeader(SyncLogConstant.HEADER_CONTENT_TYPE,SyncLogConstant.CONTENT_TYPE_JSON);
+        
+        return request;
+    }
+    
+    public static HttpResponse res(HttpRequest request) {
+        
+        AcxiomLeadCallout.JSONRespWrap obj = (AcxiomLeadCallout.JSONRespWrap) JSON.deserialize(res.getBody(),AcxiomLeadCallout.JSONRespWrap.class);
+            system.debug('2. optout'+obj); 
+            if(obj.optout == 'OPTOUT')
+                {
+                        //   lst[i].Email_OptOut__c = true;
+                        lst[i].Survey_OptOut__c = true;
+                        update lst[i];
+                        system.debug('2.1 optout'+obj); 
+                    }
+                    
+                    else
+                    {
+                        lst[i].Survey_OptOut__c = false;
+                        update lst[i];
+                        system.debug('2.2 optout'+obj); 
+                    }  
+        
+        return new Http().send(request);
+    }
+    
+    
+    
+    public static ResponseWrapper buildResponse(HttpResponse httpRes) {
+        //Response restRes = new Response();
+        
+        
+        // restRes.Id = httpRes.getBody();
+        
+        //return restRes;
+        ResponseWrapper resp = new ResponseWrapper();
+        system.debug('Response @@@'+httpRes);
+        system.debug('Response Body'+httpRes.getBody());
+        
+        resp = (ResponseWrapper)JSON.deserialize(httpRes.getBody(), ResponseWrapper.Class);
+        
+        return  resp;
+        
+    }}
+        
+    public static String getAuthenticationToken(list<id> LeadIdsLst) {
+        
+//      List<CKSW_BASE__Zip_Code__c> lstZipLookupValues = [select Name, City__c, County__c, State__c from CKSW_BASE__Zip_Code__c where Name ='30339'];        
+        List<Lead> lst = [SELECT id, Email, Email_OptOut__c, Survey_OptOut__c FROM lead WHERE id IN : LeadIdsLst];
+//      system.debug('Zip Code object@@@'+lstZipLookupValues);  
+        String uri = MetadataSettings.HVACLEADAPI_SETTINGS.Token_Endpoint__c;
+        String clientId = EncodingUtil.urlEncode(MetadataSettings.HVACLEADAPI_SETTINGS.Client_ID__c, 'UTF-8');
+        String clientSecret = EncodingUtil.urlEncode(MetadataSettings.HVACLEADAPI_SETTINGS.Client_Secret__c, 'UTF-8');
+        Map<String, String> bodymap = new Map<String, String>();
+//      bodymap.put(SyncLogConstant.HVAC_HEADER_GRANT_TYPE, SyncLogConstant.CLIENT_GRANT_TYPE);
+//      bodymap.put(SyncLogConstant.HVAC_HEADER_CLIENT_ID, clientId);
+//      bodymap.put(SyncLogConstant.HVAC_HEADER_CLIENT_SECRET, clientSecret);
+        
+        Http h = new Http();
+        HttpRequest hRqst = new HttpRequest();
+        HttpResponse hRes;
+        hRqst.setMethod(SyncLogConstant.METHOD_POST);
+        hRqst.setTimeout(SyncLogConstant.TIMEOUT_30);
+        if (!Test.isRunningTest()) {
+            hRqst.setEndpoint(uri);
+            hRqst.setHeader(SyncLogConstant.HEADER_CONTENT_TYPE,SyncLogConstant.CONTENT_TYPE_JSON);
+            hRqst.setBody(Json.serialize(bodymap));
+            hRes = h.send(hRqst);
+        }
+        
+        if (hRes <> NULL){
+            Map<String,String> res = (Map<String,String>) JSON.deserialize(hRes.getBody(),Map<String,String>.class);
+            clientToken = res.get('token'); 
+            system.debug('Token @@@'+clientToken);
+            return clientToken;
+            
+        }else {
+            return NULL;
+        }
+    }
+                public class JSONRespWrap
+    {
+        public String optout{get;set;}
+    }
+            }
+
+_______________________________________________________________________________________________________________________________________________________
+
+REVISED CODE FOR CALLOUT CLASS - USED HVACLEADAPIREQUEST CLASS IN PR 1/8/2018
+
+/***************************************************************************************************************************************************
+ # Class Name  = "AcxiomLeadCallout"
+ # Author      =  Austin Sarno
+ # Description =  This class is used for making API call to Acxiom Web Service for Survey Optout customers.               
+ # Change Log :
+ ============================================================================================================
+ Date                     Changed By                        Change Description
+ ============================================================================================================
+ 08/21/2018               Austin Sarno                      Original Version                        
+**************************************************************************************************************************************************/
+
+public class AcxiomLeadCallout { 
+    
+    for(Integer i = 0; i < lst.size(); i++)
+            
+            if(lst[i].email != null) {
+    
+    public static string clientToken='';
+    
+    public static HttpRequest buildRequest(String path, String method, String responseFormat, String bodyContent, String bodyContentType) {
+        HttpRequest request = new HttpRequest();
+//      bodyContent=bodyContent.replace('Apptdate',LeadConstant.SP_APT_DATE);
+//      bodyContent=bodyContent.replace('Appttime',LeadConstant.SP_APT_TIME);
+//      system.debug('body content server'+bodyContent);
+        String uri = MetadataSettings.HVACLEADAPI_SETTINGS.Lead_Upload_Endpoint__c ;
+        request.setEndpoint(URL.getSalesforceBaseUrl().toExternalForm() + path);
+        request.setEndpoint(uri);
+        request.setMethod(method);
+        if (bodyContent != null) {
+            request.setBody(bodyContent);
+            request.setHeader(SyncLogConstant.HEADER_CONTENT_TYPE, bodyContentType);  
+        }
+        
+        if (!Test.isRunningTest()) {
+            String accessToken = getAuthenticationToken();
+            request.setHeader(SyncLogConstant.HEADER_AUTHORIZATION, 'BASIC ' + accessToken); 
+            //headers.put(SyncLogConstant.HEADER_APPTOKEN,accessToken);
+            
+        }
+        
+        //request.setClientCertificateName('homeservice_dev_gcp');
+        request.setHeader(SyncLogConstant.HEADER_CONTENT_TYPE,SyncLogConstant.CONTENT_TYPE_JSON);
+        
+        return request;
+    }
+    
+    public static HttpResponse res(HttpRequest request) {
+        
+        AcxiomLeadCallout.JSONRespWrap obj = (AcxiomLeadCallout.JSONRespWrap) JSON.deserialize(res.getBody(),AcxiomLeadCallout.JSONRespWrap.class);
+            system.debug('2. optout'+obj); 
+            if(obj.optout == 'OPTOUT')
+                {
+                        //   lst[i].Email_OptOut__c = true;
+                        lst[i].Survey_OptOut__c = true;
+                        update lst[i];
+                        system.debug('2.1 optout'+obj); 
+                    }
+                    
+                    else
+                    {
+                        lst[i].Survey_OptOut__c = false;
+                        update lst[i];
+                        system.debug('2.2 optout'+obj); 
+                    }  
+        
+        return new Http().send(request);
+    }
+    
+    
+    
+    public static ResponseWrapper buildResponse(HttpResponse httpRes) {
+        //Response restRes = new Response();
+        
+        
+        // restRes.Id = httpRes.getBody();
+        
+        //return restRes;
+        ResponseWrapper resp = new ResponseWrapper();
+        system.debug('Response @@@'+httpRes);
+        system.debug('Response Body'+httpRes.getBody());
+        
+        resp = (ResponseWrapper)JSON.deserialize(httpRes.getBody(), ResponseWrapper.Class);
+        
+        return  resp;
+        
+    }}
+        
+    public static String getAuthenticationToken(list<id> LeadIdsLst) {
+        
+//      List<CKSW_BASE__Zip_Code__c> lstZipLookupValues = [select Name, City__c, County__c, State__c from CKSW_BASE__Zip_Code__c where Name ='30339'];        
+        List<Lead> lst = [SELECT id, Email, Email_OptOut__c, Survey_OptOut__c FROM lead WHERE id IN : LeadIdsLst];
+//      system.debug('Zip Code object@@@'+lstZipLookupValues);  
+        String uri = MetadataSettings.HVACLEADAPI_SETTINGS.Token_Endpoint__c;
+        String clientId = EncodingUtil.urlEncode(MetadataSettings.HVACLEADAPI_SETTINGS.Client_ID__c, 'UTF-8');
+        String clientSecret = EncodingUtil.urlEncode(MetadataSettings.HVACLEADAPI_SETTINGS.Client_Secret__c, 'UTF-8');
+        Map<String, String> bodymap = new Map<String, String>();
+//      bodymap.put(SyncLogConstant.HVAC_HEADER_GRANT_TYPE, SyncLogConstant.CLIENT_GRANT_TYPE);
+//      bodymap.put(SyncLogConstant.HVAC_HEADER_CLIENT_ID, clientId);
+//      bodymap.put(SyncLogConstant.HVAC_HEADER_CLIENT_SECRET, clientSecret);
+        
+        Http h = new Http();
+        HttpRequest hRqst = new HttpRequest();
+        HttpResponse hRes;
+        hRqst.setMethod(SyncLogConstant.METHOD_POST);
+        hRqst.setTimeout(SyncLogConstant.TIMEOUT_30);
+        if (!Test.isRunningTest()) {
+            hRqst.setEndpoint(uri);
+            hRqst.setHeader(SyncLogConstant.HEADER_CONTENT_TYPE,SyncLogConstant.CONTENT_TYPE_JSON);
+            hRqst.setBody(Json.serialize(bodymap));
+            hRes = h.send(hRqst);
+        }
+        
+        if (hRes <> NULL){
+            Map<String,String> res = (Map<String,String>) JSON.deserialize(hRes.getBody(),Map<String,String>.class);
+            clientToken = res.get('token'); 
+            system.debug('Token @@@'+clientToken);
+            return clientToken;
+            
+        }else {
+            return NULL;
+        }
+    }
+                public class JSONRespWrap
+    {
+        public String optout{get;set;}
+    }
+            }
+
+_______________________________________________________________________________________________________________________________________________________
+
+// OLD CODE - Modified 1/9/2019
+
+public class AcxiomLeadCallout 
+{
+    @future(Callout=true)
+    public static void makeHTTPCallout(list<id> LeadIdsLst)
+    {
+        String username;
+        String password;
+        list<Lead> lst = new list<Lead>();
+        lst = [SELECT id, Email, Email_OptOut__c, Survey_OptOut__c FROM lead WHERE id IN : LeadIdsLst];
+        
+        for(Integer i = 0; i < lst.size(); i++)
+            
+            if(lst[i].email != null) {
+                
+                // make http callout
+                
+                // Instantiate a new http object to initialize for the response 
+                Http h = new Http();
+                
+                // Instantiate a new HTTP request, specify the method (GET) as well as the endpoint
+//           public static void HttpRequest buildRequest(String path, String method, String responseFormat, String bodyContent, String bodyContentType) {
+//                HttpRequest req = new HttpRequest();
+                  String method;
+				  String path = +lst[i].email;	
+                  HttpRequest req = new HttpRequest();
+//                req.setMethod('GET');
+//                req.setEndpoint('https://mypreferences.homedepot.com/hsintegrationapi/v1/optout?email='+lst[i].email);
+//                req.setHeader('Authorization', 'Basic aHNpbnRlZ3JhdGlvbjpiNjRkNjJjZWVhMzE2MzQ1N2U5NjdmYTRlN2Q1OWM3Nw==');
+                String uri = MetadataSettings.HVACLEADAPI_SETTINGS.Lead_Upload_Endpoint__c ;
+				String clientId = EncodingUtil.urlEncode(MetadataSettings.HVACLEADAPI_SETTINGS.Client_ID__c, 'UTF-8');
+        		String clientSecret = EncodingUtil.urlEncode(MetadataSettings.HVACLEADAPI_SETTINGS.Client_Secret__c, 'UTF-8');                
+        		req.setEndpoint(URL.getSalesforceBaseUrl().toExternalForm() + path);
+        		req.setEndpoint(uri);
+        		req.setMethod(method);
+                
+/**                try {
+                    List <Interface_Master__mdt> getmdtdata = new List <Interface_Master__mdt>();
+                    getmdtdata = giic_ERPIntegrationUtils.getIntegrationMaster('Acxiom_API_Callout');
+                    
+                    for (Interface_Master__mdt IntrVal: getmdtdata) {
+                        username = IntrVal.Client_Id__c;
+                        password = IntrVal.Client_Secret__c;  
+                    }
+                }
+                catch(Exception e){
+                    
+                }
+                
+                //String username = 'hsintegration';
+                //String password = 'b64d62ceea3163457e967fa4e7d59c77';
+                
+                Blob headerValue = Blob.valueOf(username + ':' + password);
+                String authorizationHeader = 'BASIC ' +
+                    EncodingUtil.base64Encode(headerValue);
+                req.setHeader('Authorization', authorizationHeader);
+**/             HttpResponse res = new HttpResponse();
+                if(!(test.isRunningTest())){
+                    // Send the request, and return a response
+                    res = h.send(req);
+                }   	
+                else
+                {
+                    MockHttpResponseGenerator temp = new MockHttpResponseGenerator();
+                    res = temp.respond(req);
+                }
+                system.debug('1. optout'+res); 
+                if(res!= null && res.getStatusCode()==200 && res.getBody() != null)
+                {
+                    AcxiomLeadCallout.JSONRespWrap obj = (AcxiomLeadCallout.JSONRespWrap)JSON.deserialize(res.getBody(), AcxiomLeadCallout.JSONRespWrap.class) ;
+                    system.debug('2. optout'+obj); 
+                    if(obj.optout == 'OPTOUT')
+                    {
+                        //   lst[i].Email_OptOut__c = true;
+                        lst[i].Survey_OptOut__c = true;
+                        update lst[i];
+                        system.debug('2.1 optout'+obj); 
+                    }
+                    
+                    else
+                    {
+                        lst[i].Survey_OptOut__c = false;
+                        update lst[i];
+                        system.debug('2.2 optout'+obj); 
+                    }  
+                }
+           }
+//            }
+    }
+    
+    public class JSONRespWrap
+    {
+        public String optout{get;set;}
+    }
+}
+
+_______________________________________________________________________________________________________________________________________________________
+
+// OLD CODE - Modified 1/10/2019
+
+public class AcxiomLeadCallout 
+{
+    @future(Callout=true)
+    public static void makeHTTPCallout(list<id> LeadIdsLst)
+    {
+        String username;
+        String password;
+        list<Lead> lst = new list<Lead>();
+        lst = [SELECT id, Email, Email_OptOut__c, Survey_OptOut__c FROM lead WHERE id IN : LeadIdsLst];
+        
+        for(Integer i = 0; i < lst.size(); i++)
+            
+            if(lst[i].email != null) {
+                
+                // make http callout
+                
+                // Instantiate a new http object to initialize for the response 
+                Http h = new Http();
+                
+                // Instantiate a new HTTP request, specify the method (GET) as well as the endpoint
+//           public static void HttpRequest buildRequest(String path, String method, String responseFormat, String bodyContent, String bodyContentType) {
+//                HttpRequest req = new HttpRequest();
+                  String method;
+				  String path = +lst[i].email;	
+                  HttpRequest req = new HttpRequest();
+//                req.setMethod('GET');
+//                req.setEndpoint('https://mypreferences.homedepot.com/hsintegrationapi/v1/optout?email='+lst[i].email);
+//                req.setHeader('Authorization', 'Basic aHNpbnRlZ3JhdGlvbjpiNjRkNjJjZWVhMzE2MzQ1N2U5NjdmYTRlN2Q1OWM3Nw==');
+                String uri = MetadataSettings.HVACLEADAPI_SETTINGS.Lead_Upload_Endpoint__c ;
+				String clientId = EncodingUtil.urlEncode(MetadataSettings.HVACLEADAPI_SETTINGS.Client_ID__c, 'UTF-8');
+        		String clientSecret = EncodingUtil.urlEncode(MetadataSettings.HVACLEADAPI_SETTINGS.Client_Secret__c, 'UTF-8');                
+        		req.setEndpoint(URL.getSalesforceBaseUrl().toExternalForm() + path);
+        		req.setEndpoint(uri);
+        		req.setMethod(method);
+                
+/**                try {
+                    List <Interface_Master__mdt> getmdtdata = new List <Interface_Master__mdt>();
+                    getmdtdata = giic_ERPIntegrationUtils.getIntegrationMaster('Acxiom_API_Callout');
+                    
+                    for (Interface_Master__mdt IntrVal: getmdtdata) {
+                        username = IntrVal.Client_Id__c;
+                        password = IntrVal.Client_Secret__c;  
+                    }
+                }
+                catch(Exception e){
+                    
+                }
+                
+                //String username = 'hsintegration';
+                //String password = 'b64d62ceea3163457e967fa4e7d59c77';
+                
+                Blob headerValue = Blob.valueOf(username + ':' + password);
+                String authorizationHeader = 'BASIC ' +
+                    EncodingUtil.base64Encode(headerValue);
+                req.setHeader('Authorization', authorizationHeader);
+**/             HttpResponse res = new HttpResponse();
+                if(!(test.isRunningTest())){
+                    // Send the request, and return a response
+                    res = h.send(req);
+                }   	
+                else
+                {
+                    MockHttpResponseGenerator temp = new MockHttpResponseGenerator();
+                    res = temp.respond(req);
+                }
+                system.debug('1. optout'+res); 
+                if(res!= null && res.getStatusCode()==200 && res.getBody() != null)
+                {
+                    AcxiomLeadCallout.JSONRespWrap obj = (AcxiomLeadCallout.JSONRespWrap)JSON.deserialize(res.getBody(), AcxiomLeadCallout.JSONRespWrap.class) ;
+                    system.debug('2. optout'+obj); 
+                    if(obj.optout == 'OPTOUT')
+                    {
+                        //   lst[i].Email_OptOut__c = true;
+                        lst[i].Survey_OptOut__c = true;
+                        update lst[i];
+                        system.debug('2.1 optout'+obj); 
+                    }
+                    
+                    else
+                    {
+                        lst[i].Survey_OptOut__c = false;
+                        update lst[i];
+                        system.debug('2.2 optout'+obj); 
+                    }  
+                }
+           }
+//            }
+    }
+    
+    public class JSONRespWrap
+    {
+        public String optout{get;set;}
+    }
+}
+
+_______________________________________________________________________________________________________________________________________________________
+
+OLD CALLOUT TEST CLASS
+
+@isTest
+public class AcxiomLeadCalloutTest {    
+      
+    @isTest
+    static void TestOnInsert() {
+        
+        //Set Mock Callout Class
+        Test.setMock(HttpCalloutMock.class, new MockHttpResponseGenerator());
+    	TestUtility.initializeTestData();
+
+        // Create
+        Lead lead = TestUtility.createLead();       
+        lead.FirstName = 'Test';
+        lead.LastName = 'Lead';
+        lead.Email = 'austin_c_sarno@homedepot.com';
+       // lead.Survey_OptOut__c = False;
+        upsert lead;        
+    }
+   
+    @isTest
+    static void TestOnUpdate() {
+        
+        //Set Mock Callout Class
+        Test.setMock(HttpCalloutMock.class, new MockHttpResponseGenerator());
+    	TestUtility.initializeTestData();
+        
+        // Update
+        Lead lead = TestUtility.createLead();
+        lead.FirstName = 'Test';
+        lead.LastName = 'Lead';
+        lead.Email = '';
+      //  lead.Survey_OptOut__c = False;
+        upsert lead;
+        
+    }
+    
+    @isTest
+    static void TestOnInsert2() {
+        
+        //Set Mock Callout Class
+        Test.setMock(HttpCalloutMock.class, new MockHttpResponseGenerator());
+    	TestUtility.initializeTestData();
+
+        // Create
+        Lead lead = TestUtility.createLead();       
+        lead.FirstName = 'Test';
+        lead.LastName = 'Lead';
+        lead.Email = 'JRJEGER@YAHOO.COM';
+      //  lead.Survey_OptOut__c = true;
+        upsert lead;     
+    } 
+    
+        @isTest
+    static void TestOnUpdate2() {
+        
+        //Set Mock Callout Class
+        Test.setMock(HttpCalloutMock.class, new MockHttpResponseGenerator());
+    	TestUtility.initializeTestData();
+        
+        // Update
+        Lead lead = TestUtility.createLead();
+        lead.FirstName = 'Test';
+        lead.LastName = 'Lead';
+        lead.Email = 'CHICKS@STEPTOE.COM';
+      //  lead.Survey_OptOut__c = false;
+        upsert lead;
+        
+    }
+    
+    @isTest
+    static void TestOnInsert3() {
+        
+        //Set Mock Callout Class
+        Test.setMock(HttpCalloutMock.class, new MockHttpResponseGenerator());
+    	TestUtility.initializeTestData();
+
+        // Create
+        Lead lead = TestUtility.createLead();       
+        lead.FirstName = 'Test';
+        lead.LastName = 'Lead';
+        lead.Email = 'CHICKS@STEPTOE.COM';
+     //   lead.Survey_OptOut__c = false;
+        upsert lead;     
+    } 
+    
+    @isTest
+    static void TestOnUpdate3() {
+        
+        //Set Mock Callout Class
+        Test.setMock(HttpCalloutMock.class, new MockHttpResponseGenerator());
+    	TestUtility.initializeTestData();
+        
+        // Update
+        Lead lead = TestUtility.createLead();
+        lead.FirstName = 'Test';
+        lead.LastName = 'Lead';
+        lead.Email = 'SARAEMILY@HALEYCOMPUTERS.COM';
+     //   lead.Survey_OptOut__c = false;
+        upsert lead;
+        
+    }
+    
+     @isTest
+    static void TestOnInsert4() {
+        
+        //Set Mock Callout Class
+        Test.setMock(HttpCalloutMock.class, new MockHttpResponseGenerator());
+    	TestUtility.initializeTestData();
+
+        // Create
+        Lead lead = TestUtility.createLead();       
+        lead.FirstName = 'Test';
+        lead.LastName = 'Lead';
+        lead.Email = 'SARAEMILY@HALEYCOMPUTERS.COM';
+    //    lead.Survey_OptOut__c = True;
+        upsert lead;     
+    } 
+    
+    @isTest
+    static void TestOnUpdate4() {
+        
+        //Set Mock Callout Class
+        Test.setMock(HttpCalloutMock.class, new MockHttpResponseGenerator());
+    	TestUtility.initializeTestData();
+        
+        // Update
+        Lead lead = TestUtility.createLead();
+        lead.FirstName = 'Test';
+        lead.LastName = 'Lead';
+        lead.Email = 'austin_c_sarno@homedepot.com';
+    //    lead.Survey_OptOut__c = False;
+        upsert lead;
+        
+    } 
+  }
